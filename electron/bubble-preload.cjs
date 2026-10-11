@@ -1,0 +1,2 @@
+const {contextBridge,ipcRenderer}=require('electron')
+contextBridge.exposeInMainWorld('lauBubble',Object.freeze({get:()=>ipcRenderer.invoke('bubble:get'),action:(id,action)=>ipcRenderer.invoke('bubble:action',id,action),resize:height=>ipcRenderer.invoke('bubble:height',height),subscribe:callback=>{if(typeof callback!=='function')throw new Error('Callback required');const listener=(_event,value)=>callback(value);ipcRenderer.on('bubble:changed',listener);return()=>ipcRenderer.removeListener('bubble:changed',listener)}}))

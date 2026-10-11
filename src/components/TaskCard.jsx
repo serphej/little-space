@@ -1,0 +1,17 @@
+﻿import { useState } from 'react'
+import { STATUSES, todayKey } from '../data'
+
+const statusNames = { todo: 'To do', doing: 'Doing', done: 'Done' }
+export default function TaskCard({ task, categories, board, onStatus, onEdit, onDelete, onPlan, onSubtask, onFocus, onMove, onDropTask }) {
+  const [expanded, setExpanded] = useState(false)
+  const category = categories.find(item => item.id === task.category)
+  const doneSteps = task.subtasks.filter(sub => sub.completed).length
+  const due = task.dueDate && new Date(`${task.dueDate}T12:00:00`).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+  function drag(event) { event.dataTransfer.setData('text/lau-task', task.id); event.dataTransfer.effectAllowed = 'move' }
+  return <article className={`task-card ${task.completed ? 'completed' : ''} ${board ? 'board-card' : ''}`} onDragOver={event => { event.preventDefault(); event.stopPropagation() }} onDrop={event => { event.preventDefault(); event.stopPropagation(); onDropTask(event.dataTransfer.getData('text/lau-task'), task.status, task.id) }}>
+    <div className="task-main"><button className="drag-handle" draggable onDragStart={drag} aria-label={`Drag ${task.title}; use task options to move with keyboard`} title="Drag to move">⠿</button><input type="checkbox" className="task-check" checked={task.completed} aria-label={`Complete ${task.title}`} onChange={() => onStatus(task.id, task.completed ? 'todo' : 'done')} /><button className="task-name" onClick={() => onEdit(task)}>{task.title}</button><details className="task-menu"><summary aria-label={`Options for ${task.title}`} title="Task options">⋯</summary><div className="menu-popover"><button onClick={() => onEdit(task)}>Edit details</button><button onClick={() => onPlan(task.id)}>{task.plannedDate === todayKey() ? 'Remove from today' : 'Plan for today'}</button>{STATUSES.filter(status => status !== task.status).map(status => <button key={status} onClick={event => { onStatus(task.id, status); event.target.closest('details').open = false }}>Move to {statusNames[status]}</button>)}<button onClick={() => onMove(task.id, -1)}>Move earlier</button><button onClick={() => onMove(task.id, 1)}>Move later</button><button onClick={() => onFocus(task)}>Start focusing</button><button className="danger-text" onClick={() => onDelete(task.id)}>Delete task</button></div></details></div>
+    <div className="task-meta">{category && <span>{category.emoji} {category.name}</span>}<span className={`priority priority-${task.priority}`}><i />{task.priority}</span>{task.status === 'doing' && <span className="doing-label">Doing</span>}{task.plannedDate === todayKey() && <span className="today-label">☀ Today</span>}{due && <span className={task.dueDate < todayKey() && !task.completed ? 'overdue' : ''}>Due {due}</span>}{(task.notes || task.subtasks.length > 0) && <button className="text-button" aria-expanded={expanded} onClick={() => setExpanded(!expanded)}>{task.subtasks.length > 0 ? `${doneSteps}/${task.subtasks.length} steps` : 'Notes'} {expanded ? '⌃' : '⌄'}</button>}</div>
+    {task.subtasks.length > 0 && <progress className="subtask-progress" value={doneSteps} max={task.subtasks.length} aria-label="Subtask progress" />}
+    {expanded && <div className="task-details">{task.notes && <p>{task.notes}</p>}{task.subtasks.map(sub => <label className="check-label" key={sub.id}><input type="checkbox" checked={sub.completed} onChange={() => onSubtask(task.id, sub.id)} /><span className={sub.completed ? 'crossed' : ''}>{sub.title}</span></label>)}</div>}
+  </article>
+}
